@@ -16,8 +16,24 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(30, 10, 12.5);
-camera.lookAt(0, 1.2, 0);
+
+function setCameraForViewport() {
+  const isMobile = window.innerWidth <= 767;
+
+  if (isMobile) {
+    camera.fov = 50;
+    camera.position.set(36, 12, 16);
+  } else {
+    camera.fov = 42;
+    camera.position.set(30, 10, 12.5);
+  }
+
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  camera.lookAt(0, 1.2, 0);
+}
+
+setCameraForViewport();
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -774,8 +790,7 @@ function finishSceneLoader() {
 // RESIZE
 // --------------------
 function onResize() {
-  camera.aspect = container.clientWidth / container.clientHeight;
-  camera.updateProjectionMatrix();
+  setCameraForViewport();
   renderer.setSize(container.clientWidth, container.clientHeight);
 
   if (filmGrain && filmGrain.canvas) {
