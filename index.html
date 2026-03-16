@@ -8,15 +8,25 @@
     html, body {
       margin: 0;
       width: 100%;
-      height: 100%;
-      overflow: hidden;
+      min-height: 100%;
       background: #020202;
+    }
+
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .scroll-stage {
+      height: 220vh;
+      position: relative;
     }
 
     #hero-car {
       width: 100%;
       height: 100vh;
-      position: relative;
+      position: sticky;
+      top: 0;
       overflow: hidden;
       background:
         radial-gradient(circle at 50% 28%, rgba(255,255,255,0.04), transparent 28%),
@@ -31,7 +41,9 @@
   </style>
 </head>
 <body>
-  <section id="hero-car"></section>
+  <section class="scroll-stage">
+    <div id="hero-car"></div>
+  </section>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.91.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.91.0/examples/js/loaders/GLTFLoader.js"></script>
