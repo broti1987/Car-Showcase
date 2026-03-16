@@ -17,11 +17,6 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-// IMPORTANT:
-// In Webflow, give your top hero section this ID:
-// id="car-hero-section"
-const scrollSection = document.getElementById("car-hero-section");
-
 const scrollState = {
   current: 0,
   target: 0
@@ -35,8 +30,8 @@ const cameraPath = {
   currentLook: new THREE.Vector3()
 };
 
-let heroScrollStart = 0;
-let heroScrollDistance = window.innerHeight * 0.35; // zoom finishes in first 35vh of scroll
+// zoom completes in the first part of page scroll only
+let heroScrollDistance = 280;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -49,16 +44,7 @@ function easeInOutCubic(t) {
 }
 
 function refreshScrollMetrics() {
-  if (!scrollSection) return;
-
-  const rect = scrollSection.getBoundingClientRect();
-  heroScrollStart = window.scrollY + rect.top;
-
-  // Tweak this:
-  // 0.25 = very quick zoom
-  // 0.35 = nice subtle first-scroll zoom
-  // 0.5  = slower zoom
-  heroScrollDistance = window.innerHeight * 0.35;
+  heroScrollDistance = window.innerWidth <= 767 ? 180 : 280;
 }
 
 function setCameraForViewport() {
@@ -68,18 +54,18 @@ function setCameraForViewport() {
     camera.fov = 50;
 
     cameraPath.from.set(36, 12, 16);
-    cameraPath.to.set(28, 10.5, 13.5);
+    cameraPath.to.set(30, 11, 14.2);
 
     cameraPath.lookFrom.set(0, 1.2, 0);
-    cameraPath.lookTo.set(0.15, 1.35, -0.35);
+    cameraPath.lookTo.set(0.15, 1.3, -0.2);
   } else {
     camera.fov = 42;
 
     cameraPath.from.set(30, 10, 12.5);
-    cameraPath.to.set(22, 8.2, 10.2);
+    cameraPath.to.set(24, 8.8, 11.1);
 
     cameraPath.lookFrom.set(0, 1.2, 0);
-    cameraPath.lookTo.set(0.2, 1.4, -0.8);
+    cameraPath.lookTo.set(0.15, 1.35, -0.35);
   }
 
   camera.aspect = container.clientWidth / container.clientHeight;
@@ -102,9 +88,7 @@ function updateCameraFromScroll(progress) {
 }
 
 function updateScrollTarget() {
-  if (!scrollSection) return;
-
-  const traveled = clamp(window.scrollY - heroScrollStart, 0, heroScrollDistance);
+  const traveled = clamp(window.scrollY, 0, heroScrollDistance);
   const rawProgress = traveled / heroScrollDistance;
 
   scrollState.target = clamp(rawProgress, 0, 1);
@@ -898,7 +882,6 @@ function animate(time) {
 
   updateCameraFromScroll(scrollState.current);
 
-  // keep rotation going always
   carGroup.rotation.y += 0.0035;
 
   updateFilmGrain(filmGrain, time);
