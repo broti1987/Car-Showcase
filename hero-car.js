@@ -17,10 +17,10 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-const scrollSection =
-  container.closest(".scroll-stage") ||
-  container.parentElement ||
-  container;
+// IMPORTANT:
+// In Webflow, give your top hero section this ID:
+// id="car-hero-section"
+const scrollSection = document.getElementById("car-hero-section");
 
 const scrollState = {
   current: 0,
@@ -35,6 +35,9 @@ const cameraPath = {
   currentLook: new THREE.Vector3()
 };
 
+let heroScrollStart = 0;
+let heroScrollDistance = window.innerHeight * 0.35; // zoom finishes in first 35vh of scroll
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -43,6 +46,19 @@ function easeInOutCubic(t) {
   return t < 0.5
     ? 4 * t * t * t
     : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function refreshScrollMetrics() {
+  if (!scrollSection) return;
+
+  const rect = scrollSection.getBoundingClientRect();
+  heroScrollStart = window.scrollY + rect.top;
+
+  // Tweak this:
+  // 0.25 = very quick zoom
+  // 0.35 = nice subtle first-scroll zoom
+  // 0.5  = slower zoom
+  heroScrollDistance = window.innerHeight * 0.35;
 }
 
 function setCameraForViewport() {
@@ -88,19 +104,15 @@ function updateCameraFromScroll(progress) {
 function updateScrollTarget() {
   if (!scrollSection) return;
 
-  const rect = scrollSection.getBoundingClientRect();
-  const sectionScrollDistance = Math.max(1, rect.height - window.innerHeight);
-  const traveled = clamp(-rect.top, 0, sectionScrollDistance);
+  const traveled = clamp(window.scrollY - heroScrollStart, 0, heroScrollDistance);
+  const rawProgress = traveled / heroScrollDistance;
 
-  const rawProgress = traveled / sectionScrollDistance;
-
-  // 1.35 makes the zoom finish earlier inside the hero section
-  scrollState.target = clamp(rawProgress * 1.35, 0, 1);
+  scrollState.target = clamp(rawProgress, 0, 1);
 }
 
 setCameraForViewport();
+refreshScrollMetrics();
 updateScrollTarget();
-window.addEventListener("scroll", updateScrollTarget, { passive: true });
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -858,6 +870,7 @@ function finishSceneLoader() {
 // --------------------
 function onResize() {
   setCameraForViewport();
+  refreshScrollMetrics();
   updateScrollTarget();
 
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -870,7 +883,10 @@ function onResize() {
 
 window.addEventListener("resize", onResize);
 window.addEventListener("scroll", updateScrollTarget, { passive: true });
-window.addEventListener("load", updateScrollTarget);
+window.addEventListener("load", function () {
+  refreshScrollMetrics();
+  updateScrollTarget();
+});
 
 // --------------------
 // ANIMATE
