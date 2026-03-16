@@ -17,6 +17,11 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
+const scrollSection =
+  container.closest(".scroll-stage") ||
+  container.parentElement ||
+  container;
+
 const scrollState = {
   current: 0,
   target: 0
@@ -26,9 +31,13 @@ const cameraPath = {
   from: new THREE.Vector3(),
   to: new THREE.Vector3(),
   lookFrom: new THREE.Vector3(0, 1.2, 0),
-  lookTo: new THREE.Vector3(0.45, 1.55, -1.8),
+  lookTo: new THREE.Vector3(0.2, 1.4, -0.8),
   currentLook: new THREE.Vector3()
 };
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function easeInOutCubic(t) {
   return t < 0.5
@@ -36,37 +45,57 @@ function easeInOutCubic(t) {
     : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-function updateCameraFromScroll(progress) {
-  const eased = easeInOutCubic(THREE.Math.clamp(progress, 0, 1));
-
-  camera.position.lerpVectors(cameraPath.from, cameraPath.to, eased);
-  cameraPath.currentLook.lerpVectors(cameraPath.lookFrom, cameraPath.lookTo, eased);
-  camera.lookAt(cameraPath.currentLook);
-}
-
-function updateScrollTarget() {
-  const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-  scrollState.target = THREE.Math.clamp(window.scrollY / maxScroll, 0, 1);
-}
-
 function setCameraForViewport() {
   const isMobile = window.innerWidth <= 767;
 
   if (isMobile) {
     camera.fov = 50;
+
     cameraPath.from.set(36, 12, 16);
-    cameraPath.to.set(1.05, 1.85, 2.65);
-    cameraPath.lookTo.set(0.2, 1.45, -1.25);
+    cameraPath.to.set(28, 10.5, 13.5);
+
+    cameraPath.lookFrom.set(0, 1.2, 0);
+    cameraPath.lookTo.set(0.15, 1.35, -0.35);
   } else {
     camera.fov = 42;
+
     cameraPath.from.set(30, 10, 12.5);
-    cameraPath.to.set(20, 5.2, 7.8);
+    cameraPath.to.set(22, 8.2, 10.2);
+
+    cameraPath.lookFrom.set(0, 1.2, 0);
     cameraPath.lookTo.set(0.2, 1.4, -0.8);
   }
 
   camera.aspect = container.clientWidth / container.clientHeight;
   camera.updateProjectionMatrix();
+
   updateCameraFromScroll(scrollState.current);
+}
+
+function updateCameraFromScroll(progress) {
+  const eased = easeInOutCubic(clamp(progress, 0, 1));
+
+  camera.position.lerpVectors(cameraPath.from, cameraPath.to, eased);
+  cameraPath.currentLook.lerpVectors(
+    cameraPath.lookFrom,
+    cameraPath.lookTo,
+    eased
+  );
+
+  camera.lookAt(cameraPath.currentLook);
+}
+
+function updateScrollTarget() {
+  if (!scrollSection) return;
+
+  const rect = scrollSection.getBoundingClientRect();
+  const sectionScrollDistance = Math.max(1, rect.height - window.innerHeight);
+  const traveled = clamp(-rect.top, 0, sectionScrollDistance);
+
+  const rawProgress = traveled / sectionScrollDistance;
+
+  // 1.35 makes the zoom finish earlier inside the hero section
+  scrollState.target = clamp(rawProgress * 1.35, 0, 1);
 }
 
 setCameraForViewport();
@@ -830,6 +859,7 @@ function finishSceneLoader() {
 function onResize() {
   setCameraForViewport();
   updateScrollTarget();
+
   renderer.setSize(container.clientWidth, container.clientHeight);
 
   if (filmGrain && filmGrain.canvas) {
@@ -839,6 +869,8 @@ function onResize() {
 }
 
 window.addEventListener("resize", onResize);
+window.addEventListener("scroll", updateScrollTarget, { passive: true });
+window.addEventListener("load", updateScrollTarget);
 
 // --------------------
 // ANIMATE
@@ -847,11 +879,13 @@ function animate(time) {
   requestAnimationFrame(animate);
 
   scrollState.current += (scrollState.target - scrollState.current) * 0.08;
+
   updateCameraFromScroll(scrollState.current);
 
-  carGroup.rotation.y += 0.0035 * (1 - scrollState.current * 0.35);
-  updateFilmGrain(filmGrain, time);
+  // keep rotation going always
+  carGroup.rotation.y += 0.0035;
 
+  updateFilmGrain(filmGrain, time);
   renderer.render(scene, camera);
 }
 
